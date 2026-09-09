@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cuisine Rating — Insights Dashboard</title>
+<style>
+  :root{
+    color-scheme: light;
+    --page:            #f9f9f7;
+    --surface-1:       #fcfcfb;
+    --text-primary:    #0b0b0b;
+    --text-secondary:  #52514e;
+    --text-muted:      #898781;
+    --grid:            #e1e0d9;
+    --baseline:        #c3c2b7;
+    --border:          rgba(11,11,11,0.10);
+    --series-1: #2a78d6; /* blue    */
+    --series-2: #eb6834; /* orange  */
+    --series-3: #1baf7a; /* aqua    */
+    --series-4: #eda100; /* yellow  */
+    --series-5: #e87ba4; /* magenta */
+    --series-6: #008300; /* green   */
+    --series-7: #4a3aa7; /* violet  */
+    --series-8: #e34948; /* red     */
+    --good: #0ca30c;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --page:            #0d0d0d;
+      --surface-1:       #1a1a19;
+      --text-primary:    #ffffff;
+      --text-secondary:  #c3c2b7;
+      --text-muted:      #898781;
+      --grid:            #2c2c2a;
+      --baseline:        #383835;
+      --border:          rgba(255,255,255,0.10);
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --series-3: #199e70;
+      --series-4: #c98500;
+      --series-5: #d55181;
+      --series-6: #008300;
+      --series-7: #9085e9;
+      --series-8: #e66767;
+      --good: #0ca30c;
+    }
+  }
+
+  *{ box-sizing: border-box; }
+  body{
+    margin:0; background:var(--page); color:var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height:1.45;
+  }
+  .wrap{ max-width: 980px; margin: 0 auto; padding: 32px 20px 80px; }
+
+  header.top{ margin-bottom: 28px; }
+  header.top h1{ font-size: 26px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  header.top p{ margin: 0; color: var(--text-secondary); font-size: 14px; }
+  header.top .meta{ margin-top: 10px; font-size: 12.5px; color: var(--text-muted); }
+
+  .callout{
+    background: color-mix(in srgb, var(--series-1) 8%, var(--surface-1));
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--series-1);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 36px;
+  }
+  .callout h3{ margin:0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--series-1); }
+  .callout p{ margin:0; font-size: 14.5px; color: var(--text-primary); }
+  .callout p + p{ margin-top: 8px; }
+
+  section.panel{
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px 20px;
+    margin-bottom: 22px;
+  }
+  .panel-head{ display:flex; align-items:baseline; gap:10px; margin-bottom: 8px; }
+  .panel-num{ font-size: 12px; font-weight: 700; color: var(--text-muted); letter-spacing: .05em; }
+  .panel-head h2{ font-size: 17px; margin: 0; }
+  .conclusion{ font-size: 14px; color: var(--text-secondary); margin: 0 0 16px; max-width: 74ch; }
+  .conclusion b{ color: var(--text-primary); }
+
+  .subhead{ font-size: 12.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color: var(--text-muted); margin: 18px 0 8px; }
+
+  .chart-card{ margin: 4px 0 6px; }
+  .chart-scroll{ overflow-x:auto; }
+  svg.chart{ width:100%; height:auto; display:block; font-family: inherit; }
+  svg text{ fill: var(--text-secondary); }
+  svg .tick text{ fill: var(--text-muted); font-size: 11px; }
+  svg .grid line{ stroke: var(--grid); stroke-width:1; }
+  svg .baseline{ stroke: var(--baseline); stroke-width:1; }
+  svg .value-label{ fill: var(--text-primary); font-size: 11.5px; font-weight:600; }
+  svg .bar{ cursor: pointer; }
+  svg .bar:hover, svg .bar.hover{ filter: brightness(1.08); }
+
+  .toggle-row{ display:flex; gap:6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .toggle-btn{
+    font: inherit; font-size: 12.5px; font-weight:600;
+    padding: 5px 12px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--page); color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .toggle-btn.active{ background: var(--series-1); border-color: var(--series-1); color: #fff; }
+
+  .legend{ display:flex; flex-wrap:wrap; gap: 12px 16px; margin: 10px 0 4px; font-size: 12.5px; color: var(--text-secondary); }
+  .legend-item{ display:flex; align-items:center; gap:6px; }
+  .legend-swatch{ width:11px; height:11px; border-radius:2px; flex:none; }
+
+  .stat-line{ font-size: 12.5px; color: var(--text-muted); margin: 10px 0 0; }
+  .stat-line b{ color: var(--text-secondary); }
+  .badge{ display:inline-block; font-size: 10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+    padding: 2px 7px; border-radius: 999px; margin-left:6px; }
+  .badge.sig{ background: color-mix(in srgb, var(--good) 16%, var(--surface-1)); color: var(--good); }
+  .badge.ns{ background: color-mix(in srgb, var(--text-muted) 18%, var(--surface-1)); color: var(--text-muted); }
+
+  details.table-toggle{ margin-top: 12px; }
+  details.table-toggle summary{ cursor:pointer; font-size: 12.5px; color: var(--series-1); font-weight:600; }
+  table.data-table{ border-collapse: collapse; width:100%; margin-top:10px; font-size: 12.5px; }
+  table.data-table th, table.data-table td{
+    text-align: right; padding: 5px 10px; border-bottom: 1px solid var(--grid);
+    font-variant-numeric: tabular-nums;
+  }
+  table.data-table th:first-child, table.data-table td:first-child{ text-align:left; font-variant-numeric: normal; }
+  table.data-table thead th{ color: var(--text-muted); font-weight:600; font-size: 11px; text-transform:uppercase; letter-spacing:.03em; }
+
+  footer.bottom{ margin-top: 30px; font-size: 12.5px; color: var(--text-muted); }
+  footer.bottom a{ color: var(--series-1); text-decoration:none; }
+  footer.bottom a:hover{ text-decoration:underline; }
+  footer.bottom ul{ padding-left: 18px; margin: 8px 0; }
+
+  #tooltip{
+    position: fixed; pointer-events:none; z-index: 50;
+    background: var(--text-primary); color: var(--page);
+    font-size: 12px; line-height:1.5; padding: 7px 10px; border-radius: 6px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.18);
+    opacity:0; transform: translate(-50%, calc(-100% - 10px)); transition: opacity .08s ease;
+    max-width: 240px;
+  }
+  #tooltip.show{ opacity:1; }
+  #tooltip .t-title{ font-weight:700; margin-bottom:2px; }
+  #tooltip .t-row{ display:flex; align-items:center; gap:6px; }
+  #tooltip .t-key{ width:9px; height:2px; flex:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1>Cuisine Rating — Insights Dashboard</h1>
+    <p>Five insights investigated against the cleaned 200-row diner survey (<code>Cuisine_rating_clean.csv</code>). Each panel is a presentation layer over its own dedicated notebook — the notebook is the source of truth; this page re-renders the headline results interactively.</p>
+    <div class="meta">200 diners · 8 locations · 7 cuisines · generated from 5 completed insight notebooks</div>
+  </header>
+
+  <div class="callout">
+    <h3>Cross-cutting pattern</h3>
+    <p><b>Central Park,NY and Market City,NY keep showing up as the two locations driving demographic splits.</b> Central Park skews young (mean age 35.7) and heavily Single (81.2%); Market City skews older (mean age 48.7) and heavily Married (72.7%) — a pattern confirmed independently by two separate insights (04 and 05).</p>
+    <p>That same young/Single vs. older/Married split is a plausible shared confounder behind the sharp rating jumps found for heavy smokers (insight 01) and for the 35–44 age dip (insight 02) — both of those insights flagged their own findings as likely confounded rather than proven causal, for exactly this reason.</p>
+  </div>
+
+  <!-- INSIGHT 1 -->
+  <section class="panel" id="insight-1">
+    <div class="panel-head"><span class="panel-num">01</span><h2>Does smoking affect the way people enjoy food?</h2></div>
+    <p class="conclusion">
+      <b>Yes, but not gradually.</b> Never and Socially smokers rate food about the same (2.83 vs 2.68); Often smokers rate it dramatically higher (4.10) — a large, sharp jump concentrated entirely in the heaviest-smoking group, not a smooth trend. Service Rating shows a milder version of the same shape. Flagged as more consistent with a confound (see callout above) than a direct effect.
+    </p>
+    <div class="toggle-row" id="s1-toggle">
+      <button class="toggle-btn active" data-metric="food">Food Rating</button>
+      <button class="toggle-btn" data-metric="service">Service Rating</button>
+      <button class="toggle-btn" data-metric="overall">Overall Rating</button>
+    </div>
+    <div class="chart-card chart-scroll"><svg class="chart" id="s1-chart" viewBox="0 0 680 300" role="img" aria-label="Mean rating by smoking frequency"></svg></div>
+    <p class="stat-line" id="s1-stat"></p>
+    <details class="table-toggle"><summary>View data table</summary>
+      <table class="data-table" id="s1-table"></table>
+    </details>
+  </section>
+
+  <!-- INSIGHT 2 -->
+  <section class="panel" id="insight-2">
+    <div class="panel-head"><span class="panel-num">02</span><h2>What kinds of age enjoy food and service more?</h2></div>
+    <p class="conclusion">
+      <b>Age matters, but non-monotonically — and food and service peak in different brackets.</b> Raw age-rating correlation is ~0 (a naive check misses this entirely). Once bracketed: under-25s enjoy food most (3.72); 45–54 gets the best service (3.92); the 35–44 bracket is the low point on <i>both</i> (2.46 food, 2.79 service) — possibly explained by that bracket being 57% Married.
+    </p>
+    <div class="legend" id="s2-legend"></div>
+    <div class="chart-card chart-scroll"><svg class="chart" id="s2-chart" viewBox="0 0 680 320" role="img" aria-label="Mean Food and Service rating by age bracket"></svg></div>
+    <p class="stat-line">Age vs Food Rating r=−0.04, Age vs Service Rating r=−0.04 (both essentially flat) <span class="badge ns">raw corr n.s.</span> — bracketed: Food ANOVA p=0.001 <span class="badge sig">significant</span>, Service ANOVA p=0.023 <span class="badge sig">significant</span></p>
+    <details class="table-toggle"><summary>View data table</summary>
+      <table class="data-table" id="s2-table"></table>
+    </details>
+  </section>
+
+  <!-- INSIGHT 3 -->
+  <section class="panel" id="insight-3">
+    <div class="panel-head"><span class="panel-num">03</span><h2>What types of cuisines are most popular by location and by gender?</h2></div>
+    <p class="conclusion">
+      <b>By location, no cuisine dominates anywhere</b> — leads are narrow (22–36% of a location's diners). China Town,NY leans most toward Seafood (36.4%); Market City,NY is a genuine tie between Indian and Japanese.
+      <b>By gender,</b> Female diners lean most toward French (19.5%); Male diners have no single leader — Filipino, Indian, and Japanese are exactly tied (18.6% each). Italian is the least popular cuisine overall, especially with Male diners (5.1%).
+    </p>
+
+    <div class="subhead">Cuisine share by location</div>
+    <div class="toggle-row" id="s3a-toggle">
+      <button class="toggle-btn active" data-mode="pct">Share (%)</button>
+      <button class="toggle-btn" data-mode="count">Count</button>
+    </div>
+    <div class="legend" id="s3-legend"></div>
+    <div class="chart-card chart-scroll"><svg class="chart" id="s3a-chart" viewBox="0 0 680 340" role="img" aria-label="Cuisine share by location"></svg></div>
+    <details class="table-toggle"><summary>View data table</summary>
+      <table class="data-table" id="s3a-table"></table>
+    </details>
+
+    <div class="subhead">Cuisine share by gender</div>
+    <div class="chart-card chart-scroll"><svg class="chart" id="s3b-chart" viewBox="0 0 680 130" role="img" aria-label="Cuisine share by gender"></svg></div>
+    <p class="stat-line">Popularity here is demand/frequency, not satisfaction — see insights 01 and 02 for rating-based views.</p>
+    <details class="table-toggle"><summary>View data table</summary>
+      <table class="data-table" id="s3b-table"></table>
+    </details>
+  </section>
+
+  <!-- INSIGHT 4 -->
+  <section class="panel" id="insight-4">
+    <div class="panel-head"><span class="panel-num">04</span><h2>Does YOB relate to budget and to area?</h2></div>
+    <p class="conclusion">
+      <b>Budget — yes, but non-linearly.</b> Raw age-budget correlation is ~0, yet the age-bracket effect is significant: 25–34 year-olds budget noticeably lower (3.36/5) than every other bracket (3.6–4.3) — a dip, not a trend, the same shape as the age/enjoyment insight above.
+      <b>Area — a mild, unconfirmed lead:</b> Central Park,NY skews youngest (mean age 35.7), Market City,NY skews oldest (48.7), but the cross-location difference doesn't clear significance (p≈0.07).
+      Also surfaced: <code>Area code</code> is <i>not</i> 1:1 with <code>Location</code> as first assumed — it's a much finer-grained code (up to 22 per location) — flagged as its own follow-up.
+    </p>
+
+    <div class="subhead">Mean budget by age bracket</div>
+    <div class="chart-card chart-scroll"><svg class="chart" id="s4a-chart" viewBox="0 0 680 260" role="img" aria-label="Mean budget by age bracket"></svg></div>
+    <p class="stat-line">Age vs Budget: Pearson r=0.07, p=0.32 <span class="badge ns">raw corr n.s.</span> — bracketed ANOVA p=0.0037 <span class="badge sig">significant</span></p>
+    <details class="table-toggle"><summary>View data table</summary>
+      <table class="data-table" id="s4a-table"></table>
+    </details>
+
+    <div class="subhead">Mean age by location</div>
+    <div class="chart-card chart-scroll"><svg class="chart" id="s4b-chart" viewBox="0 0 680 340" role="img" aria-label="Mean age by location"></svg></div>
+    <p class="stat-line">Cross-location ANOVA p=0.072, Kruskal-Wallis p=0.074 <span class="badge ns">not significant</span> — directional only</p>
+    <details class="table-toggle"><summary>View data table</summary>
+      <table class="data-table" id="s4b-table"></table>
+    </details>
+  </section>
+
+  <!-- INSIGHT 5 -->
+  <section class="panel" id="insight-5">
+    <div class="panel-head"><span class="panel-num">05</span><h2>Check marital status per area</h2></div>
+    <p class="conclusion">
+      <b>Marital status clusters by location rather than spreading evenly.</b> Central Park,NY skews heavily Single (81.2% vs. 50.0% dataset-wide); Market City,NY skews heavily Married (72.7% vs. 43.0% overall) — the two best-supported patterns. Independently corroborates insight 04's finding that the same two locations skew youngest/oldest by age.
+    </p>
+    <div class="legend" id="s5-legend"></div>
+    <div class="chart-card chart-scroll"><svg class="chart" id="s5-chart" viewBox="0 0 680 340" role="img" aria-label="Marital status share by location, with dataset baseline"></svg></div>
+    <p class="stat-line">Chi-square (Location × Marital Status): χ²=32.21, p=0.0037 <span class="badge sig">significant</span> — but 42% of cells have expected count &lt;5, so treat as directional, carried mainly by the two standout locations.</p>
+    <details class="table-toggle"><summary>View data table</summary>
+      <table class="data-table" id="s5-table"></table>
+    </details>
+  </section>
+
+  <footer class="bottom">
+    <p>Presentation layer only — every number here is re-rendered from a completed, executed notebook. Nothing was re-analyzed for this page.</p>
+    <ul>
+      <li><a href="./01_smoking_food_enjoyment.ipynb">01_smoking_food_enjoyment.ipynb</a></li>
+      <li><a href="./02_age_food_service_enjoyment.ipynb">02_age_food_service_enjoyment.ipynb</a></li>
+      <li><a href="./03_cuisine_popularity_by_location_gender.ipynb">03_cuisine_popularity_by_location_gender.ipynb</a></li>
+      <li><a href="./04_yob_budget_area.ipynb">04_yob_budget_area.ipynb</a></li>
+      <li><a href="./05_marital_status_by_area.ipynb">05_marital_status_by_area.ipynb</a></li>
+      <li><a href="./analysis_summary.ipynb">analysis_summary.ipynb</a> — running index</li>
+    </ul>
+  </footer>
+
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+(function(){
+  "use strict";
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  var tooltip = document.getElementById("tooltip");
+
+  function el(tag, attrs, parent){
+    var e = document.createElementNS(SVG_NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function text(x, y, str, cls, parent, anchor){
+    var t = el("text", {x:x, y:y, class: cls||""}, parent);
+    if (anchor) t.setAttribute("text-anchor", anchor);
+    t.textContent = str;
+    return t;
+  }
+  function niceMax(v){
+    if (v <= 5) return 5;
+    var mag = Math.pow(10, Math.floor(Math.log10(v)));
+    var n = v / mag;
+    var step = n <= 2 ? 2 : (n <= 5 ? 5 : 10);
+    return step * mag;
+  }
+
+  function showTip(evt, rows, title){
+    tooltip.innerHTML = "";
+    var t = document.createElement("div");
+    t.className = "t-title";
+    t.textContent = title;
+    tooltip.appendChild(t);
+    rows.forEach(function(r){
+      var row = document.createElement("div");
+      row.className = "t-row";
+      if (r.color){
+        var key = document.createElement("span");
+        key.className = "t-key";
+        key.style.background = r.color;
+        row.appendChild(key);
+      }
+      var span = document.createElement("span");
+      span.textContent = r.label;
+      row.appendChild(span);
+      tooltip.appendChild(row);
+    });
+    var x = evt.clientX, y = evt.clientY;
+    tooltip.style.left = x + "px";
+    tooltip.style.top = y + "px";
+    tooltip.classList.add("show");
+  }
+  function hideTip(){ tooltip.classList.remove("show"); }
+
+  // ---- generic vertical bar chart (single series) ----
+  function verticalBars(svgId, opts){
+    // opts: {data:[{label,value,n}], color, valueDomain, unit, fmt, tickStep, extremes:[i,...]}
+    var svg = document.getElementById(svgId);
+    svg.innerHTML = "";
+    var vb = svg.viewBox.baseVal;
+    var W = vb.width, H = vb.height;
+    var m = {top:16, right:16, bottom: opts.rotateLabels ? 74 : 38, left:34};
+    var x0 = m.left, x1 = W - m.right, y0 = H - m.bottom, y1 = m.top;
+    var data = opts.data;
+    var maxVal = opts.valueDomain || niceMax(Math.max.apply(null, data.map(function(d){return d.value;})) * 1.15);
+    var step = opts.tickStep || (maxVal/5);
+
+    var g = el("g", {}, svg);
+    // gridlines
+    for (var v=0; v<=maxVal+0.001; v+=step){
+      var gy = y0 - (v/maxVal)*(y0-y1);
+      el("line", {x1:x0, x2:x1, y1:gy, y2:gy, class:"grid"}, g);
+      text(x0-8, gy+4, (opts.fmt?opts.fmt(v):v), "tick", g, "end");
+    }
+    el("line", {x1:x0, x2:x1, y1:y0, y2:y0, class:"baseline"}, g);
+
+    var slot = (x1-x0)/data.length;
+    var barW = Math.min(28, slot*0.55);
+    data.forEach(function(d,i){
+      var cx = x0 + slot*(i+0.5);
+      var barH = (d.value/maxVal)*(y0-y1);
+      var by = y0 - barH;
+      var color = typeof opts.color === "function" ? opts.color(d,i) : opts.color;
+      var rect = el("rect", {x:cx-barW/2, y:by, width:barW, height:Math.max(barH,1), rx:4, ry:4, fill:color, class:"bar"}, g);
+      rect.addEventListener("pointermove", function(evt){
+        showTip(evt, [{label:(opts.fmt?opts.fmt(d.value):d.value) + (opts.unit||"") + (d.n!=null? "  (n="+d.n+")":"")}], d.label);
+        rect.classList.add("hover");
+      });
+      rect.addEventListener("pointerleave", function(){ rect.classList.remove("hover"); hideTip(); });
+      // direct label on extremes only
+      if (opts.extremes && opts.extremes.indexOf(i) !== -1){
+        text(cx, by-6, (opts.fmt?opts.fmt(d.value):d.value), "value-label", g, "middle");
+      }
+      // x label (shortened via tickLabel if provided, to keep rotated/short labels legible)
+      var tickStr = opts.tickLabel ? opts.tickLabel(d) : d.label;
+      var lbl = text(cx, y0+16, tickStr, "tick", g, "middle");
+      if (opts.rotateLabels){
+        lbl.setAttribute("transform", "rotate(-40 "+cx+" "+(y0+16)+")");
+        lbl.setAttribute("text-anchor", "end");
+      }
+    });
+  }
+
+  // ---- generic horizontal stacked bar chart (percentage OR raw-unit totals) ----
+  function horizontalStacked(svgId, opts){
+    // opts: {data:[{label,n,reference,segments:[{name,value,count}]}], colorFor(name),
+    //        maxVal, axisSuffix, gridTicks:[...], valueFmt(seg)->string}
+    var svg = document.getElementById(svgId);
+    svg.innerHTML = "";
+    var vb = svg.viewBox.baseVal;
+    var W = vb.width, H = vb.height;
+    var m = {top:10, right:16, bottom:26, left:118};
+    var x0 = m.left, x1 = W - m.right, y0 = m.top, y1 = H - m.bottom;
+    var data = opts.data;
+    var rowH = Math.min(28, (y1-y0)/data.length - 8);
+    var rowGap = (y1-y0)/data.length;
+    var maxVal = opts.maxVal || 100;
+    var suffix = opts.axisSuffix != null ? opts.axisSuffix : "%";
+    var ticks = opts.gridTicks || [0, maxVal*0.25, maxVal*0.5, maxVal*0.75, maxVal];
+
+    var g = el("g", {}, svg);
+    ticks.forEach(function(v){
+      var gx = x0 + (v/maxVal)*(x1-x0);
+      el("line", {x1:gx, x2:gx, y1:y0-2, y2:y1+4, class:"grid"}, g);
+      text(gx, y1+18, Math.round(v*10)/10 + suffix, "tick", g, "middle");
+    });
+
+    data.forEach(function(row, ri){
+      var cy = y0 + rowGap*ri + rowGap/2;
+      text(x0-10, cy+4, row.label, "tick", g, "end");
+      var cursor = x0;
+      row.segments.forEach(function(seg){
+        if (seg.value <= 0) return;
+        var w = (seg.value/maxVal)*(x1-x0);
+        var color = opts.colorFor(seg.name);
+        var rect = el("rect", {
+          x:cursor, y:cy-rowH/2, width:Math.max(w-1.5,0), height:rowH,
+          rx:3, ry:3, fill:color, class:"bar"
+        }, g);
+        rect.addEventListener("pointermove", function(evt){
+          var line = opts.valueFmt ? opts.valueFmt(seg) : (seg.name+": "+seg.value);
+          showTip(evt, [{label: line, color: color}], row.label + (row.n!=null?"  ·  n="+row.n:""));
+          rect.classList.add("hover");
+        });
+        rect.addEventListener("pointerleave", function(){ rect.classList.remove("hover"); hideTip(); });
+        cursor += w;
+      });
+      // baseline reference row style
+      if (row.reference){
+        el("rect", {x:x0, y:cy-rowH/2-2, width:(x1-x0), height:rowH+4, fill:"none", stroke:"var(--baseline)", "stroke-dasharray":"3 3", rx:5}, g);
+      }
+    });
+  }
+
+  // ---- generic grouped bar chart (2 series) ----
+  function groupedBars(svgId, opts){
+    // opts: {data:[{label, values:[v1,v2], ns:[n1,n2]}], colors:[c1,c2], seriesNames:[s1,s2], valueDomain, tickStep, fmt}
+    var svg = document.getElementById(svgId);
+    svg.innerHTML = "";
+    var vb = svg.viewBox.baseVal;
+    var W = vb.width, H = vb.height;
+    var m = {top:16, right:16, bottom:38, left:34};
+    var x0 = m.left, x1 = W - m.right, y0 = H - m.bottom, y1 = m.top;
+    var data = opts.data;
+    var maxVal = opts.valueDomain || niceMax(Math.max.apply(null, data.map(function(d){return Math.max.apply(null, d.values);})) * 1.15);
+    var step = opts.tickStep || (maxVal/5);
+
+    var g = el("g", {}, svg);
+    for (var v=0; v<=maxVal+0.001; v+=step){
+      var gy = y0 - (v/maxVal)*(y0-y1);
+      el("line", {x1:x0, x2:x1, y1:gy, y2:gy, class:"grid"}, g);
+      text(x0-8, gy+4, (opts.fmt?opts.fmt(v):v), "tick", g, "end");
+    }
+    el("line", {x1:x0, x2:x1, y1:y0, y2:y0, class:"baseline"}, g);
+
+    var slot = (x1-x0)/data.length;
+    var pairW = Math.min(40, slot*0.65);
+    var barW = pairW/2 - 1;
+
+    data.forEach(function(d,i){
+      var cx = x0 + slot*(i+0.5);
+      d.values.forEach(function(val, si){
+        var bx = cx - pairW/2 + si*(barW+2);
+        var barH = (val/maxVal)*(y0-y1);
+        var by = y0 - barH;
+        var color = opts.colors[si];
+        var rect = el("rect", {x:bx, y:by, width:barW, height:Math.max(barH,1), rx:3, ry:3, fill:color, class:"bar"}, g);
+        rect.addEventListener("pointermove", function(evt){
+          var n = d.ns ? d.ns[si] : null;
+          showTip(evt, [{label:opts.seriesNames[si]+": "+(opts.fmt?opts.fmt(val):val) + (n!=null?"  (n="+n+")":""), color: color}], d.label);
+          rect.classList.add("hover");
+        });
+        rect.addEventListener("pointerleave", function(){ rect.classList.remove("hover"); hideTip(); });
+      });
+      text(cx, y0+16, d.label, "tick", g, "middle");
+    });
+  }
+
+  function legendRow(containerId, items){
+    var c = document.getElementById(containerId);
+    c.innerHTML = "";
+    items.forEach(function(it){
+      var wrap = document.createElement("div");
+      wrap.className = "legend-item";
+      var sw = document.createElement("span");
+      sw.className = "legend-swatch";
+      sw.style.background = it.color;
+      wrap.appendChild(sw);
+      var lb = document.createElement("span");
+      lb.textContent = it.label;
+      wrap.appendChild(lb);
+      c.appendChild(wrap);
+    });
+  }
+
+  function fillTable(id, headers, rows){
+    var table = document.getElementById(id);
+    var thead = "<thead><tr>" + headers.map(function(h){return "<th>"+h+"</th>";}).join("") + "</tr></thead>";
+    var tbody = "<tbody>" + rows.map(function(r){
+      return "<tr>" + r.map(function(c){return "<td>"+c+"</td>";}).join("") + "</tr>";
+    }).join("") + "</tbody>";
+    table.innerHTML = thead + tbody;
+  }
+
+  var css = getComputedStyle(document.documentElement);
+  function cvar(name){ return "var(" + name + ")"; }
+
+  // ============ INSIGHT 1 : Smoking ============
+  var s1data = {
+    food:    {values:[2.83,2.68,4.10], stat:"One-way ANOVA F=26.56, p<0.0001 · Kruskal-Wallis p<0.0001"},
+    service: {values:[2.64,3.28,3.67], stat:"Kruskal-Wallis p=0.0003"},
+    overall: {values:[2.74,2.98,3.89], stat:"Kruskal-Wallis p<0.0001"}
+  };
+  var s1labels = ["Never","Socially","Often"];
+  var s1ns = [59,71,70];
+  function renderS1(metric){
+    var vals = s1data[metric].values;
+    var data = s1labels.map(function(l,i){ return {label:l, value:vals[i], n:s1ns[i]}; });
+    verticalBars("s1-chart", {
+      data:data, valueDomain:5, tickStep:1,
+      color: function(d,i){
+        var pct = 45 + i*27.5;
+        return "color-mix(in srgb, "+cvar("--series-1")+" "+pct+"%, "+cvar("--surface-1")+")";
+      },
+      fmt: function(v){ return v.toFixed(1); },
+      extremes:[0,1,2]
+    });
+    document.getElementById("s1-stat").innerHTML =
+      "Mean " + metric[0].toUpperCase()+metric.slice(1) + " Rating by smoking frequency (1–5 scale) &nbsp;·&nbsp; " + s1data[metric].stat +
+      " <span class='badge sig'>significant</span>";
+    fillTable("s1-table", ["Smoker", "n", "Food", "Service", "Overall"],
+      s1labels.map(function(l,i){ return [l, s1ns[i], s1data.food.values[i].toFixed(2), s1data.service.values[i].toFixed(2), s1data.overall.values[i].toFixed(2)]; })
+    );
+  }
+  renderS1("food");
+  document.getElementById("s1-toggle").addEventListener("click", function(e){
+    var btn = e.target.closest(".toggle-btn");
+    if (!btn) return;
+    this.querySelectorAll(".toggle-btn").forEach(function(b){ b.classList.remove("active"); });
+    btn.classList.add("active");
+    renderS1(btn.dataset.metric);
+  });
+
+  // ============ INSIGHT 2 : Age bracket ============
+  var s2labels = ["≤24","25-34","35-44","45-54","55-64","65+"];
+  var s2ns = [40,44,28,36,28,24];
+  var s2food = [3.72,2.89,2.46,3.58,3.54,2.96];
+  var s2service = [3.32,3.30,2.79,3.92,2.86,2.88];
+  groupedBars("s2-chart", {
+    data: s2labels.map(function(l,i){ return {label:l, values:[s2food[i], s2service[i]], ns:[s2ns[i], s2ns[i]]}; }),
+    colors: [cvar("--series-1"), cvar("--series-2")],
+    seriesNames: ["Food Rating","Service Rating"],
+    valueDomain: 5, tickStep: 1,
+    fmt: function(v){ return v.toFixed(1); }
+  });
+  legendRow("s2-legend", [{label:"Food Rating", color:cvar("--series-1")}, {label:"Service Rating", color:cvar("--series-2")}]);
+  fillTable("s2-table", ["Age bracket","n","Food mean","Service mean"],
+    s2labels.map(function(l,i){ return [l, s2ns[i], s2food[i].toFixed(2), s2service[i].toFixed(2)]; })
+  );
+
+  // ============ INSIGHT 3a : Cuisine x Location ============
+  var cuisineOrder = ["Chinese","Filipino","French","Indian","Italian","Japanese","Seafood"];
+  var cuisineColors = {
+    Chinese: cvar("--series-1"), Filipino: cvar("--series-2"), French: cvar("--series-3"),
+    Indian: cvar("--series-4"), Italian: cvar("--series-5"), Japanese: cvar("--series-6"), Seafood: cvar("--series-7")
+  };
+  legendRow("s3-legend", cuisineOrder.map(function(c){ return {label:c, color:cuisineColors[c]}; }));
+
+  var locRows = [
+    {label:"St. George,NY",    n:46, counts:[4,12,8,8,4,10,0],  pct:[8.7,26.1,17.4,17.4,8.7,21.7,0.0]},
+    {label:"Central Park,NY",  n:32, counts:[2,8,6,6,2,4,4],    pct:[6.2,25.0,18.8,18.8,6.2,12.5,12.5]},
+    {label:"Upper East Side,NY", n:30, counts:[10,2,6,2,4,6,0], pct:[33.3,6.7,20.0,6.7,13.3,20.0,0.0]},
+    {label:"Riverdale,NY",     n:28, counts:[4,6,2,0,6,8,2],    pct:[14.3,21.4,7.1,0.0,21.4,28.6,7.1]},
+    {label:"China Town,NY",    n:22, counts:[2,2,4,6,0,0,8],    pct:[9.1,9.1,18.2,27.3,0.0,0.0,36.4]},
+    {label:"Market City,NY",   n:22, counts:[0,2,4,6,0,6,4],    pct:[0.0,9.1,18.2,27.3,0.0,27.3,18.2]},
+    {label:"Upper West Side,NY", n:18, counts:[2,2,4,2,2,2,4],  pct:[11.1,11.1,22.2,11.1,11.1,11.1,22.2]},
+    {label:"Cedar Hill,NY",    n:2,  counts:[0,0,0,2,0,0,0],    pct:[0.0,0.0,0.0,100.0,0.0,0.0,0.0]}
+  ];
+  var s3aMode = "pct";
+  var s3aMaxCount = niceMax(Math.max.apply(null, locRows.map(function(r){ return r.n; })));
+  function renderS3a(){
+    var isPct = s3aMode === "pct";
+    horizontalStacked("s3a-chart", {
+      data: locRows.map(function(r){
+        return { label:r.label, n:r.n, segments: cuisineOrder.map(function(c,ci){
+          return { name:c, value: isPct ? r.pct[ci] : r.counts[ci], count: r.counts[ci] };
+        })};
+      }),
+      colorFor: function(name){ return cuisineColors[name]; },
+      maxVal: isPct ? 100 : s3aMaxCount,
+      axisSuffix: isPct ? "%" : "",
+      gridTicks: isPct ? null : [0, s3aMaxCount*0.2, s3aMaxCount*0.4, s3aMaxCount*0.6, s3aMaxCount*0.8, s3aMaxCount],
+      valueFmt: function(seg){
+        return isPct ? (seg.name+": "+seg.value.toFixed(1)+"%  (n="+seg.count+")")
+                      : (seg.name+": "+seg.value+" diners");
+      }
+    });
+  }
+  renderS3a();
+  document.getElementById("s3a-toggle").addEventListener("click", function(e){
+    var btn = e.target.closest(".toggle-btn");
+    if (!btn) return;
+    this.querySelectorAll(".toggle-btn").forEach(function(b){ b.classList.remove("active"); });
+    btn.classList.add("active");
+    s3aMode = btn.dataset.mode;
+    renderS3a();
+  });
+  fillTable("s3a-table", ["Location","n"].concat(cuisineOrder),
+    locRows.map(function(r){ return [r.label, r.n].concat(r.pct.map(function(p){ return p.toFixed(1)+"%"; })); })
+  );
+
+  // ============ INSIGHT 3b : Cuisine x Gender ============
+  var genderRows = [
+    {label:"Female", n:82,  counts:[14,12,16,10,12,14,4], pct:[17.1,14.6,19.5,12.2,14.6,17.1,4.9]},
+    {label:"Male",   n:118, counts:[10,22,18,22,6,22,18], pct:[8.5,18.6,15.3,18.6,5.1,18.6,15.3]}
+  ];
+  horizontalStacked("s3b-chart", {
+    data: genderRows.map(function(r){
+      return { label:r.label, n:r.n, segments: cuisineOrder.map(function(c,ci){
+        return { name:c, value:r.pct[ci], count:r.counts[ci] };
+      })};
+    }),
+    colorFor: function(name){ return cuisineColors[name]; },
+    maxVal: 100, axisSuffix: "%",
+    valueFmt: function(seg){ return seg.name+": "+seg.value.toFixed(1)+"%  (n="+seg.count+")"; }
+  });
+  fillTable("s3b-table", ["Gender","n"].concat(cuisineOrder),
+    genderRows.map(function(r){ return [r.label, r.n].concat(r.pct.map(function(p){ return p.toFixed(1)+"%"; })); })
+  );
+
+  // ============ INSIGHT 4a : Budget by age bracket ============
+  var s4aLabels = ["18-24","25-34","35-44","45-54","55-64","65+"];
+  var s4aNs = [40,44,28,36,28,24];
+  var s4aVals = [3.90,3.36,4.32,3.83,3.64,4.08];
+  verticalBars("s4a-chart", {
+    data: s4aLabels.map(function(l,i){ return {label:l, value:s4aVals[i], n:s4aNs[i]}; }),
+    valueDomain:5, tickStep:1,
+    color: cvar("--series-1"),
+    fmt: function(v){ return v.toFixed(2); },
+    extremes:[1,2]
+  });
+  fillTable("s4a-table", ["Age bracket","n","Mean budget"],
+    s4aLabels.map(function(l,i){ return [l, s4aNs[i], s4aVals[i].toFixed(2)]; })
+  );
+
+  // ============ INSIGHT 4b : Mean age by location ============
+  var s4bRows = [
+    {label:"Central Park,NY", n:32, mean:35.69},
+    {label:"St. George,NY", n:46, mean:39.57},
+    {label:"Upper East Side,NY", n:30, mean:40.47},
+    {label:"Upper West Side,NY", n:18, mean:41.22},
+    {label:"China Town,NY", n:22, mean:42.18},
+    {label:"Riverdale,NY", n:28, mean:42.29},
+    {label:"Market City,NY", n:22, mean:48.73},
+    {label:"Cedar Hill,NY", n:2, mean:66.00}
+  ];
+  verticalBars("s4b-chart", {
+    data: s4bRows.map(function(r){ return {label:r.label, value:r.mean, n:r.n}; }),
+    valueDomain:80, tickStep:20,
+    color: cvar("--series-1"),
+    fmt: function(v){ return Math.round(v); },
+    extremes:[0,6],
+    rotateLabels: true,
+    tickLabel: function(d){ return d.label.replace(",NY",""); }
+  });
+  fillTable("s4b-table", ["Location","n","Mean age"],
+    s4bRows.map(function(r){ return [r.label, r.n, r.mean.toFixed(1)]; })
+  );
+
+  // ============ INSIGHT 5 : Marital status by location ============
+  var maritalOrder = ["Single","Married","Divorced"];
+  var maritalColors = { Single: cvar("--series-1"), Married: cvar("--series-2"), Divorced: cvar("--series-3") };
+  legendRow("s5-legend", maritalOrder.map(function(m){ return {label:m, color:maritalColors[m]}; }));
+
+  var s5Rows = [
+    {label:"St. George,NY", n:46, counts:{Divorced:4, Married:16, Single:26}, pct:{Divorced:8.7, Married:34.8, Single:56.5}},
+    {label:"Central Park,NY", n:32, counts:{Divorced:2, Married:4, Single:26}, pct:{Divorced:6.2, Married:12.5, Single:81.2}},
+    {label:"Upper East Side,NY", n:30, counts:{Divorced:2, Married:16, Single:12}, pct:{Divorced:6.7, Married:53.3, Single:40.0}},
+    {label:"Riverdale,NY", n:28, counts:{Divorced:0, Married:12, Single:16}, pct:{Divorced:0.0, Married:42.9, Single:57.1}},
+    {label:"China Town,NY", n:22, counts:{Divorced:2, Married:10, Single:10}, pct:{Divorced:9.1, Married:45.5, Single:45.5}},
+    {label:"Market City,NY", n:22, counts:{Divorced:2, Married:16, Single:4}, pct:{Divorced:9.1, Married:72.7, Single:18.2}},
+    {label:"Upper West Side,NY", n:18, counts:{Divorced:2, Married:10, Single:6}, pct:{Divorced:11.1, Married:55.6, Single:33.3}},
+    {label:"Cedar Hill,NY", n:2, counts:{Divorced:0, Married:2, Single:0}, pct:{Divorced:0.0, Married:100.0, Single:0.0}}
+  ];
+  var s5Baseline = {label:"Overall (baseline)", n:200, pct:{Single:50.0, Married:43.0, Divorced:7.0}, counts:{Single:100, Married:86, Divorced:14}, reference:true};
+
+  horizontalStacked("s5-chart", {
+    data: s5Rows.concat([s5Baseline]).map(function(r){
+      return { label:r.label, n:r.n, reference: r.reference,
+        segments: maritalOrder.map(function(m){ return {name:m, value:r.pct[m], count:r.counts[m]}; }) };
+    }),
+    colorFor: function(name){ return maritalColors[name]; },
+    maxVal: 100, axisSuffix: "%",
+    valueFmt: function(seg){ return seg.name+": "+seg.value.toFixed(1)+"%  (n="+seg.count+")"; }
+  });
+  fillTable("s5-table", ["Location","n"].concat(maritalOrder),
+    s5Rows.concat([s5Baseline]).map(function(r){ return [r.label, r.n].concat(maritalOrder.map(function(m){ return r.pct[m].toFixed(1)+"%"; })); })
+  );
+
+})();
+</script>
+</body>
+</html>
