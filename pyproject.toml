@@ -1,5 +1,5 @@
 [project]
-name = "skill-builder"
+name = "data-analysis-skills"
 version = "0.1.0"
 description = "Claude Code skills for a guided data workflow: cleaning, first-pass analysis and deeper analysis"
 readme = "README.md"
@@ -7,11 +7,9 @@ authors = [
     { name = "Hugo Caravlho", email = "hugomnc317@gmail.com" }
 ]
 requires-python = ">=3.13"
-dependencies = []
-
-[project.scripts]
-skill-builder = "skill_builder:main"
-
-[build-system]
-requires = ["uv_build>=0.12.10,<0.13.0"]
-build-backend = "uv_build"
+dependencies = [
+    "matplotlib>=3.11.2",
+    "numpy>=2.5.3",
+    "pandas>=3.0.6",
+    "scipy>=1.18.1",
+]

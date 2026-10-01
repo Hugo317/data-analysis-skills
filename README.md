@@ -13,9 +13,9 @@ from raw data to five answered questions and an interactive dashboard, using onl
 
 | Step | Skill | What it does |
 |---|---|---|
-| 1 | **`dataset-cleanup`**<br>`.claude/skills/0.1_cleaning_data` | Cleans a raw dataset without touching the original: duplicates → missing values → outliers → category consistency → data types. Asks about one issue at a time and versions every run (`_clean`, `_clean_v2`…). |
-| 2 | **`first-analysis`**<br>`.claude/skills/0.2_initial_analysis` | A standard first pass over a new dataset: structure, data quality, column roles, distributions, business metrics and suggested questions, saved as a notebook. |
-| 3 | **`deeper-analysis`**<br>`.claude/skills/0.3_deep_analysis` | Answers one question at a time against the cleaned data. Confirms the scope first, picks the right statistical depth, states assumptions and caveats, and writes one numbered notebook per question with a plain-language conclusion. |
+| 1 | **`dataset-cleanup`** | Cleans a raw dataset without touching the original: duplicates → missing values → outliers → category consistency → data types. Asks about one issue at a time and versions every run (`_clean`, `_clean_v2`…). |
+| 2 | **`first-analysis`** | A standard first pass over a new dataset: structure, data quality, column roles, distributions, business metrics and suggested questions, saved as a notebook. |
+| 3 | **`deeper-analysis`** | Answers one question at a time against the cleaned data. Confirms the scope first, picks the right statistical depth, states assumptions and caveats, and writes one numbered notebook per question with a plain-language conclusion. |
 
 Two helper skills support them:
 
@@ -41,7 +41,9 @@ The five questions:
 4. **Does year of birth relate to budget and area?** 25–34 year-olds budget lowest; the age difference between areas isn't significant.
 5. **How does marital status vary by area?** Central Park skews Single (81%), Market City skews Married (73%).
 
-![Insight 1: food rating by smoking frequency](docs/screenshots/insight_smoking.png)
+| Insight 1: smoking | Insight 5: marital status |
+|---|---|
+| ![Food rating by smoking frequency](docs/screenshots/insight_smoking.png) | ![Marital status by location](docs/screenshots/insight_marital_status.png) |
 
 ## Using the skills
 
