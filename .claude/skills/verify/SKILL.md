@@ -1,19 +1,24 @@
 ---
 name: verify
-description: Run the project's checks for skill-builder — dependency sync, linting, tests, and a smoke run of the CLI. Use after making changes, before committing, or when asked to verify that the project still works.
+description: Run the project's checks for data-analysis-skills — every skill under .claude/skills is valid, and the analysis notebooks still have the data files they read. Use after editing a skill or notebook, before committing, or when asked to verify that the project still works.
 ---
 
 # Verify
 
-Run these in order from the project root. Report failures with the actual output; do not
+Run these checks from the project root, in order. Report failures with the actual output; do not
 summarize a failure as a pass.
 
-1. `uv sync` — dependencies in step with `pyproject.toml`.
-2. Lint, if configured (a `[tool.ruff]` section in `pyproject.toml` or a `ruff.toml`):
-   `uv run ruff check .` and `uv run ruff format --check .`
-3. Tests, if a `tests/` directory exists: `uv run pytest`
-4. Smoke test the entry point: `uv run skill-builder`
+1. **Skills are valid.** For every directory in `.claude/skills/`:
+   - it contains a `SKILL.md`
+   - the file starts with YAML frontmatter that parses, with non-empty `name` and `description`
+   - `description` says *when* to use the skill, not just what it does
+   - every sibling file the body points to (e.g. `references/foo.md`) exists
 
-Skip a step only when its tooling genuinely isn't set up yet, and say which steps you
-skipped and why. Never substitute a bare `python`, `pip`, or `pytest` for the `uv run`
-form — that bypasses the project venv.
+   See the `skill-spec` skill for the full rules.
+2. **Notebooks have their data.** Every `.ipynb` in the project root that reads a CSV
+   (`Cuisine_rating.csv`, `Cuisine_rating_clean.csv`, or a `_clean_vN` version) must find that file
+   next to it. List any notebook whose input file is missing.
+3. **Dependencies are in sync:** `uv sync`.
+
+Say which checks passed, which failed, and which you skipped and why. Never substitute a bare
+`python`, `pip`, or `pytest` for the `uv run` form — that bypasses the project venv.

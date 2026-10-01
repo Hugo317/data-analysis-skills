@@ -1,6 +1,6 @@
 ---
 name: skill-spec
-description: Reference for the Claude Code SKILL.md format — frontmatter fields, naming and description rules, directory layout, and invocation modes. Use when writing, reviewing, validating, or generating skill files, including the output skill-builder produces.
+description: Reference for the Claude Code SKILL.md format — frontmatter fields, naming and description rules, directory layout, and invocation modes. Use when writing, reviewing, validating, or generating skill files.
 ---
 
 # SKILL.md format
